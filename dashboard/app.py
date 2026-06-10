@@ -3,12 +3,10 @@ NYC Weather × Citibike Ridership Dashboard
 Audience: journalists and city planners — no data-analyst jargon.
 Data loads once; all filtering is in-memory pandas. Never re-queries BigQuery.
 """
-import os
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from google.oauth2 import service_account
 from google.cloud import bigquery
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -17,14 +15,6 @@ st.set_page_config(
     page_icon="🚲",
     layout="wide",
 )
-
-# ── BigQuery auth (service-account key injected by Cloud Run secret / local ADC)
-def _bq_client():
-    key_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if key_path and os.path.exists(key_path):
-        creds = service_account.Credentials.from_service_account_file(key_path)
-        return bigquery.Client(credentials=creds, project="msbai-dwd-aa13072")
-    return bigquery.Client(project="msbai-dwd-aa13072")   # falls back to ADC
 
 
 # ── Data load — runs ONCE, result is cached for the session ──────────────────
@@ -36,7 +26,7 @@ def load_data() -> pd.DataFrame:
     nyu-datasets.citibike.m_daily_trips if it is absent or empty.
     Weather bands are computed here so every downstream filter is pure pandas.
     """
-    bq = _bq_client()
+    bq = bigquery.Client(project="msbai-dwd-aa13072")
 
     # Determine which trips table to use
     try:

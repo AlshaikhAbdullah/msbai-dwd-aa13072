@@ -24,18 +24,14 @@ These are the spine of the product. Each question is phrased as a decision someo
 | Q3 | Given Q2, does a **weather-triggered promo aimed at casual riders** make sense — is there a forecastable window where casual demand is elastic to good weather? | Rides-vs-temperature relationship, split by rider type (§4, V2) |
 | Q4 | What does a **typical weather day** look like for ridership, so an unusual day is recognizable as unusual? | Seasonality view — rides by month / day-of-week (§4, V4) |
 
+
 **Honesty note on margin:** the assignment asserts casual riders carry higher margins; v1 takes that as given for *framing* but only *shows* casual volume and weather-sensitivity, which is what the daily data supports. Actual per-trip margin is reserved for the revenue stretch goal.
 
 ---
 
 ## 3. What a Visitor Can Filter
 
-Only filters the data can actually support are listed. Nothing is promised that won't be wired up.
 
-- **Date range** — default to full history; lets the visitor zoom to a season, a year, or a single weather event.
-- **Rider type** — All / Member / Casual. Central to Q2 and Q3.
-- **Weather band** — temperature buckets (e.g. cold / mild / warm / hot) and/or wet vs dry days, so the visitor can isolate "what happens on days like this."
-- **Bike type** — Classic / Ebike — *included only if the column is present (it exists from 2021 onward).* This also sets up the revenue stretch goal.
 
 ---
 
@@ -44,9 +40,7 @@ Only filters the data can actually support are listed. Nothing is promised that 
 Four focused views beat ten cluttered ones. Each names *why* it is in front of this non-technical visitor — this doubles as the pre-written "defend the spec" answer.
 
 - **V1 — Ridership over time, weather overlaid.** Daily/weekly rides as the primary line, a chosen weather variable (temperature, precipitation) overlaid. *Why:* lets the visitor eyeball whether a dip lines up with bad weather (explainable) or doesn't (worth a manager's attention). Directly answers Q1.
-- **V2 — Rides vs temperature.** Binned curve or scatter showing the *shape* of the relationship, split by rider type. *Why:* shows where demand is elastic to weather and for whom — the basis of any promo decision (Q3).
-- **V3 — Member vs casual across weather bands.** Share or volume of each rider type across weather conditions. *Why:* isolates the higher-margin casual segment's weather behavior (Q2).
-- **V4 — Seasonality.** Rides by month and by day-of-week. *Why:* separates calendar effects from weather effects, so the visitor doesn't mistake "it's July" for "it was sunny." Guards every other view against a false weather story.
+
 
 ---
 
@@ -67,13 +61,11 @@ A spec is as much about what is *not* built. These boundaries are deliberate.
 
 - **Not predictive.** v1 is descriptive. Forecasting next week's ridership is a stretch goal, and only with a held-out-history error reported.
 - **Not reconstructed revenue.** Any dollar figure (stretch only) applies *today's* pricing across all history as a yardstick, clearly labeled as such — not historical revenue, since prices have changed many times.
-- **Not station-level geography.** The daily table is aggregated; v1 makes no borough/station map unless the geography column genuinely exists.
+
 - **Not a data-analyst tool.** No raw tables, no model coefficients, no statistical jargon surfaced to the visitor.
 
 ---
 
 ## 7. Data Source
 
-- Primary: my own daily trips table in BigQuery, joined to NYC weather.
-- Fallback: `nyu-datasets.citibike.m_daily_trips` if the Part 1 pipeline isn't loaded.
-- Bike-type-dependent views (V2 split, revenue stretch) apply only to **2021 onward**, when bike type is recorded.
+

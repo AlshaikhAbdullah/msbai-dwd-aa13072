@@ -3,3 +3,4 @@
 credentials.json
 credentials_clean.json
 /tmp/
+dashboard/__pycache__/

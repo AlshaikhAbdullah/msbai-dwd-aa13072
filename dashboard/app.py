@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-from google.cloud import bigquery
+from data import load_data
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -16,93 +16,6 @@ st.set_page_config(
     layout="wide",
 )
 
-
-# ── Data load — runs ONCE, result is cached for the session ──────────────────
-@st.cache_data(show_spinner="Loading ridership + weather data…")
-def load_data() -> pd.DataFrame:
-    """
-    Joins Citibike daily trips to NYC weather on date.
-    Tries the project's own daily_summary_mat first; falls back to
-    nyu-datasets.citibike.m_daily_trips if it is absent or empty.
-    Weather bands are computed here so every downstream filter is pure pandas.
-    """
-    bq = bigquery.Client(project="msbai-dwd-aa13072")
-
-    # Determine which trips table to use
-    try:
-        probe = list(bq.query(
-            "SELECT COUNT(*) AS n FROM `msbai-dwd-aa13072.citibike.daily_summary_mat`"
-        ).result())
-        use_own = probe[0].n > 0
-    except Exception:
-        use_own = False
-
-    if use_own:
-        trips_sql = """
-            SELECT
-                trip_date                          AS date,
-                SUM(trip_count)                    AS num_trips,
-                SUM(CASE WHEN rider_type='member' THEN trip_count ELSE 0 END)
-                                                   AS num_member_trips,
-                SUM(CASE WHEN rider_type='casual' THEN trip_count ELSE 0 END)
-                                                   AS num_casual_trips,
-                SUM(CASE WHEN region='New York City' THEN trip_count ELSE 0 END)
-                                                   AS num_nyc_trips,
-                SUM(CASE WHEN region='New Jersey'    THEN trip_count ELSE 0 END)
-                                                   AS num_jc_trips,
-                CAST(NULL AS INT64)                AS num_classic_trips,
-                CAST(NULL AS INT64)                AS num_electric_trips,
-                AVG(avg_duration_min)              AS avg_trip_duration_minutes
-            FROM `msbai-dwd-aa13072.citibike.daily_summary_mat`
-            GROUP BY trip_date
-        """
-    else:
-        trips_sql = """
-            SELECT
-                date,
-                num_trips,
-                num_member_trips,
-                num_casual_trips,
-                num_nyc_trips,
-                num_jc_trips,
-                num_classic_trips,
-                num_electric_trips,
-                avg_trip_duration_minutes
-            FROM `nyu-datasets.citibike.m_daily_trips`
-        """
-
-    weather_sql = """
-        SELECT
-            date,
-            tavg_f, tmax_f, tmin_f,
-            prcp_inches,
-            is_rainy, is_snowy, is_hot_day, is_freezing,
-            season, is_weekend,
-            month, day_of_week,
-            wind_avg_mph, wind_gust_mph,
-            snow_inches
-        FROM `nyu-datasets.weather.m_weather_daily_nyc`
-    """
-
-    trips_df   = bq.query(trips_sql).to_dataframe()
-    weather_df = bq.query(weather_sql).to_dataframe()
-
-    df = trips_df.merge(weather_df, on="date", how="inner")
-    df["date"] = pd.to_datetime(df["date"])
-    df.sort_values("date", inplace=True)
-    df.reset_index(drop=True, inplace=True)
-
-    # Weather bands — computed once, used by all views
-    df["weather_band"] = pd.cut(
-        df["tavg_f"],
-        bins=[-999, 40, 60, 75, 999],
-        labels=["Cold (<40 °F)", "Mild (40–60 °F)", "Warm (60–75 °F)", "Hot (>75 °F)"],
-    )
-
-    # 7-day rolling average for V1 smoothing
-    df["trips_7d"] = df["num_trips"].rolling(7, min_periods=1).mean()
-
-    return df
 
 
 # ── Sidebar filters ───────────────────────────────────────────────────────────

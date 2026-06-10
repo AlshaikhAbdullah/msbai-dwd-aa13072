@@ -12,7 +12,7 @@
 | `roles/bigquery.dataEditor` | Create/write tables in the project's BigQuery datasets |
 | `roles/bigquery.jobUser` | Execute BigQuery query jobs (required for reads and writes) |
 | `roles/run.developer` | Deploy and manage the Cloud Run visualization website |
-| `roles/storage.objectAdmin` | Read/write GCS buckets for build artifacts and static assets |
+| `roles/storage.admin` | Create/manage GCS buckets and objects for build artifacts and static assets |
 
 **Note:** `roles/bigquery.dataViewer` on `nyu-datasets` must be granted separately by the `nyu-datasets` project admin to allow reading `nyu-datasets.weather.m_weather_daily_nyc`.
 

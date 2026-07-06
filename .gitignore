@@ -4,3 +4,5 @@ credentials.json
 credentials_clean.json
 /tmp/
 dashboard/__pycache__/
+pipeline/__pycache__/
+*.pyc

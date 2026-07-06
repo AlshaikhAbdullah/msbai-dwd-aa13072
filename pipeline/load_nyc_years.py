@@ -21,7 +21,9 @@ from collections import defaultdict
 import pandas as pd
 from google.cloud import bigquery
 
-from load_jersey_city import LEGACY_SCHEMA, LEGACY_MAP, coerce, _norm  # reuse
+from load_jersey_city import (  # reuse
+    LEGACY_SCHEMA, LEGACY_MAP, NEW_SCHEMA, NEW_MAP, coerce, _norm,
+)
 
 PROJECT = "msbai-dwd-aa13072"
 ANNUAL = "https://s3.amazonaws.com/tripdata/{y}-citibike-tripdata.zip"
@@ -55,34 +57,42 @@ def iter_csvs(zbytes):
 
 def main(years):
     c = bigquery.Client(project=PROJECT)
-    tbl = f"{PROJECT}.citibike.trips_legacy"
+    legacy = f"{PROJECT}.citibike.trips_legacy"
+    new = f"{PROJECT}.citibike.trips_new"
     for y in years:
         y = int(y)
         print(f"\n=== {y} ===")
-        # 1. delete the year (idempotent reload)
-        c.query(f"DELETE FROM `{tbl}` "
-                f"WHERE starttime >= '{y}-01-01' AND starttime < '{y+1}-01-01'"
-                ).result()
+        # 1. delete the year from BOTH tables (a year may be mixed, e.g. 2021)
+        c.query(f"DELETE FROM `{legacy}` "
+                f"WHERE starttime >= '{y}-01-01' AND starttime < '{y+1}-01-01'").result()
+        c.query(f"DELETE FROM `{new}` "
+                f"WHERE started_at >= '{y}-01-01' AND started_at < '{y+1}-01-01'").result()
         print(f"  deleted existing {y} rows")
         # 2. download annual zip
-        raw = urllib.request.urlopen(ANNUAL.format(y=y), timeout=600).read()
+        raw = urllib.request.urlopen(ANNUAL.format(y=y), timeout=900).read()
         print(f"  downloaded {len(raw)/1e6:.0f} MB")
-        # 3. load each CSV part
-        total = 0
+        # 3. load each CSV part, routing by detected schema
+        n_legacy = n_new = 0
         for name, df in iter_csvs(raw):
             norm = {_norm(x) for x in df.columns}
-            if not ("tripduration" in norm or "starttime" in norm):
-                print(f"    skip non-legacy {name}")
+            if "rideid" in norm:
+                out, tbl, schema = coerce(df, NEW_SCHEMA, NEW_MAP), new, NEW_SCHEMA
+            elif "tripduration" in norm or "starttime" in norm:
+                out, tbl, schema = coerce(df, LEGACY_SCHEMA, LEGACY_MAP), legacy, LEGACY_SCHEMA
+            else:
+                print(f"    skip unknown schema {name}")
                 continue
-            out = coerce(df, LEGACY_SCHEMA, LEGACY_MAP)
             c.load_table_from_dataframe(
                 out, tbl,
                 job_config=bigquery.LoadJobConfig(
                     write_disposition="WRITE_APPEND",
-                    schema=[bigquery.SchemaField(n, t) for n, t in LEGACY_SCHEMA]),
+                    schema=[bigquery.SchemaField(nm, t) for nm, t in schema]),
             ).result()
-            total += len(out)
-        print(f"  loaded {total:,} rows for {y}")
+            if tbl == new:
+                n_new += len(out)
+            else:
+                n_legacy += len(out)
+        print(f"  loaded legacy={n_legacy:,}  new={n_new:,} for {y}")
 
 if __name__ == "__main__":
     main(sys.argv[1:] or ["2013", "2016", "2017", "2018"])

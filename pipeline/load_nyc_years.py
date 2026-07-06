@@ -49,11 +49,24 @@ def _pick_csvs(names):
     return chosen
 
 def iter_csvs(zbytes):
-    """Yield (name, DataFrame) for each deduped CSV part in an annual zip."""
+    """Yield (name, DataFrame) for each deduped CSV part in an annual zip.
+    Annual zips are either (a) CSVs/split parts directly (2013–2021) or
+    (b) nested monthly .zip files (2022+). Handles both, recursing one level."""
     with zipfile.ZipFile(io.BytesIO(zbytes)) as z:
-        for name in _pick_csvs(z.namelist()):
-            with z.open(name) as fh:
-                yield name, pd.read_csv(fh, dtype=str, low_memory=False)
+        nested = [n for n in z.namelist()
+                  if n.lower().endswith(".zip") and not n.startswith("__MACOSX")]
+        if nested:
+            for zn in nested:
+                with z.open(zn) as fh:
+                    inner = fh.read()
+                with zipfile.ZipFile(io.BytesIO(inner)) as iz:
+                    for name in _pick_csvs(iz.namelist()):
+                        with iz.open(name) as cf:
+                            yield name, pd.read_csv(cf, dtype=str, low_memory=False)
+        else:
+            for name in _pick_csvs(z.namelist()):
+                with z.open(name) as fh:
+                    yield name, pd.read_csv(fh, dtype=str, low_memory=False)
 
 def main(years):
     c = bigquery.Client(project=PROJECT)

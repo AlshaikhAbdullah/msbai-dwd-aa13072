@@ -41,12 +41,16 @@ def load_data() -> pd.DataFrame:
                                                    AS num_member_trips,
                 SUM(CASE WHEN rider_type='casual' THEN trip_count ELSE 0 END)
                                                    AS num_casual_trips,
+                SUM(CASE WHEN rider_type NOT IN ('member','casual') THEN trip_count ELSE 0 END)
+                                                   AS num_unknown_trips,
                 SUM(CASE WHEN region='New York City' THEN trip_count ELSE 0 END)
                                                    AS num_nyc_trips,
                 SUM(CASE WHEN region='New Jersey'    THEN trip_count ELSE 0 END)
                                                    AS num_jc_trips,
-                CAST(NULL AS INT64)                AS num_classic_trips,
-                CAST(NULL AS INT64)                AS num_electric_trips,
+                SUM(CASE WHEN bike_type='classic'  THEN trip_count ELSE 0 END)
+                                                   AS num_classic_trips,
+                SUM(CASE WHEN bike_type='electric' THEN trip_count ELSE 0 END)
+                                                   AS num_electric_trips,
                 AVG(avg_duration_min)              AS avg_trip_duration_minutes
             FROM `msbai-dwd-aa13072.citibike.daily_summary_mat`
             GROUP BY trip_date
@@ -58,6 +62,7 @@ def load_data() -> pd.DataFrame:
                 num_trips,
                 num_member_trips,
                 num_casual_trips,
+                0 AS num_unknown_trips,
                 num_nyc_trips,
                 num_jc_trips,
                 num_classic_trips,
@@ -121,10 +126,11 @@ def _load_data_impl() -> pd.DataFrame:
                 SUM(trip_count) AS num_trips,
                 SUM(CASE WHEN rider_type='member' THEN trip_count ELSE 0 END) AS num_member_trips,
                 SUM(CASE WHEN rider_type='casual' THEN trip_count ELSE 0 END) AS num_casual_trips,
+                SUM(CASE WHEN rider_type NOT IN ('member','casual') THEN trip_count ELSE 0 END) AS num_unknown_trips,
                 SUM(CASE WHEN region='New York City' THEN trip_count ELSE 0 END) AS num_nyc_trips,
                 SUM(CASE WHEN region='New Jersey' THEN trip_count ELSE 0 END) AS num_jc_trips,
-                CAST(NULL AS INT64) AS num_classic_trips,
-                CAST(NULL AS INT64) AS num_electric_trips,
+                SUM(CASE WHEN bike_type='classic' THEN trip_count ELSE 0 END) AS num_classic_trips,
+                SUM(CASE WHEN bike_type='electric' THEN trip_count ELSE 0 END) AS num_electric_trips,
                 AVG(avg_duration_min) AS avg_trip_duration_minutes
             FROM `msbai-dwd-aa13072.citibike.daily_summary_mat`
             GROUP BY trip_date
@@ -132,6 +138,7 @@ def _load_data_impl() -> pd.DataFrame:
     else:
         trips_sql = """
             SELECT date, num_trips, num_member_trips, num_casual_trips,
+                   0 AS num_unknown_trips,
                    num_nyc_trips, num_jc_trips, num_classic_trips, num_electric_trips,
                    avg_trip_duration_minutes
             FROM `nyu-datasets.citibike.m_daily_trips`

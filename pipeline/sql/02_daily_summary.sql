@@ -5,7 +5,8 @@ CREATE OR REPLACE VIEW `msbai-dwd-aa13072.citibike.daily_summary` AS
 SELECT
   DATE(started_at) AS trip_date,
   region,
-  member_casual AS rider_type,
+  CASE WHEN member_casual IN ('member','casual') THEN member_casual
+       ELSE 'unknown' END AS rider_type,
   CASE
     WHEN rideable_type IS NULL THEN 'unknown'
     WHEN LOWER(rideable_type) LIKE '%electric%' THEN 'electric'

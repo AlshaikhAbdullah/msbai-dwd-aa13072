@@ -59,9 +59,10 @@ check("No duplicate dates", df["date"].nunique() == len(df),
 
 # ── 4. member + casual = total ───────────────────────────────────────────────
 print("\n── Rider-type arithmetic ──")
-diff = (df["num_member_trips"] + df["num_casual_trips"] - df["num_trips"]).abs()
+diff = (df["num_member_trips"] + df["num_casual_trips"]
+        + df["num_unknown_trips"] - df["num_trips"]).abs()
 check(
-    "member + casual == total (within 1 on every row)",
+    "member + casual + unknown == total (within 1 on every row)",
     (diff <= 1).all(),
     f"max deviation = {diff.max():.0f}",
 )

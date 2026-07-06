@@ -12,10 +12,11 @@ Years 2013–2020 are legacy schema → trips_legacy. Pass years on argv, e.g.:
     python load_nyc_years.py 2013 2016 2017 2018
 """
 import io
-import os
+import re
 import sys
 import zipfile
 import urllib.request
+from collections import defaultdict
 
 import pandas as pd
 from google.cloud import bigquery
@@ -24,13 +25,31 @@ from load_jersey_city import LEGACY_SCHEMA, LEGACY_MAP, coerce, _norm  # reuse
 
 PROJECT = "msbai-dwd-aa13072"
 ANNUAL = "https://s3.amazonaws.com/tripdata/{y}-citibike-tripdata.zip"
+_YM = re.compile(r"(\d{6})")
+
+def _pick_csvs(names):
+    """Annual zips often ship each month TWICE — a flat top-level
+    `YYYYMM-citibike-tripdata.csv` AND nested `N_Month/..._1.csv` split parts.
+    Loading both double-counts. Per month: keep the flat file if present, else
+    fall back to the nested parts."""
+    csvs = [n for n in names
+            if n.lower().endswith(".csv") and not n.startswith("__MACOSX")]
+    by_month = defaultdict(lambda: {"flat": [], "nested": []})
+    for n in csvs:
+        m = _YM.search(n.split("/")[-1])
+        if not m:
+            continue
+        kind = "flat" if n.count("/") == 1 else "nested"
+        by_month[m.group(1)][kind].append(n)
+    chosen = []
+    for ym, kinds in by_month.items():
+        chosen += kinds["flat"] if kinds["flat"] else kinds["nested"]
+    return chosen
 
 def iter_csvs(zbytes):
-    """Yield (name, DataFrame) for each real CSV part in an annual zip."""
+    """Yield (name, DataFrame) for each deduped CSV part in an annual zip."""
     with zipfile.ZipFile(io.BytesIO(zbytes)) as z:
-        for name in z.namelist():
-            if name.startswith("__MACOSX") or not name.lower().endswith(".csv"):
-                continue
+        for name in _pick_csvs(z.namelist()):
             with z.open(name) as fh:
                 yield name, pd.read_csv(fh, dtype=str, low_memory=False)
 

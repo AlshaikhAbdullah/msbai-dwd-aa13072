@@ -25,6 +25,37 @@ against the targets in `streamlitspec.md §6`.
 | **Public-reach** | non-author opens URL, no login | Deployed public on Streamlit Community Cloud — URL in `README.md`. NYU's GCP org policy blocks public Cloud Run, so Cloud Run is used only for authenticated/proxy access. |
 | **Clarity** | one-sentence claim as each chart title, no jargon | **PASS** — all 5 charts titled with their claim; no raw tables or coefficients surfaced |
 
+## Stretch (optional): ridership prediction
+
+Attempted the **prediction** stretch (not the revenue one). Code: `pipeline/predict_ridership.py`.
+
+**Setup.** Predict daily NYC ridership from features knowable in advance — weather
+(temp, precip, snow, wind) and calendar (month, day-of-week, weekend, day-of-year
+sin/cos, year). Model: gradient-boosted trees (`HistGradientBoostingRegressor`).
+
+**Honest evaluation.** Trained on 2013-06 → 2025-05 (4,372 days) and scored on the
+**most recent 12 months the model never saw** (2025-05-30 → 2026-05-29, 364 days) —
+a time-based hold-out, not a shuffled split, so there's no leakage from the future
+into training.
+
+**Out-of-sample result (on unseen data):**
+- **MAPE = 23.9%** — day-ahead predictions land within ~24% of actual on average.
+- MAE = 12,360 rides/day; R² = 0.897.
+
+**Assumptions & limits, stated plainly.**
+- Features are forecast-available (a weather forecast + the calendar), so this is a
+  legitimate "given tomorrow's forecast, how many rides?" setup — but it inherits
+  whatever error a real weather forecast would carry; here it's scored on *actual*
+  weather, so live use would be somewhat worse.
+- 24% is honest, not flattering. The error is dominated by (a) low-ridership winter
+  days, where a small absolute miss is a large percentage, and (b) year-over-year
+  growth: the test year is busier than any training year, and trees can't
+  extrapolate a trend past their training range. A separate linear detrend was
+  tried and did *worse* (growth is non-linear — a 2020 COVID dip then acceleration),
+  so the single model is kept.
+- Not wired into the dashboard: v1 of the app is descriptive by spec (§6 Non-Goals);
+  this stretch is a standalone, reproducible script.
+
 ## Honest limitations
 
 - **Margin is assumed, not measured.** We show casual *volume* and weather-sensitivity; per-trip margin needs pricing data we don't have.

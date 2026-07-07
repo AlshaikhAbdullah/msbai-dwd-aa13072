@@ -31,27 +31,56 @@ These are the spine of the product. Each question is phrased as a decision someo
 
 ## 3. What a Visitor Can Filter
 
+All filters live in the sidebar and act on the in-memory dataframe — moving one never re-queries BigQuery. They are chosen so a non-technical visitor can reproduce any headline claim.
 
+| Filter | Options | Why it exists |
+|--------|---------|---------------|
+| **Date range** | Any window within 2013-06 → present | Isolate the period a journalist is writing about (a heat wave, a snow month, a specific year) |
+| **Rider type** | All / Member / Casual | The member-vs-casual split is the commercial spine (Q2, Q3); the visitor can reshape every time-series to one segment |
+| **Weather band** | All / Cold <40°F / Mild 40–60°F / Warm 60–75°F / Hot >75°F | Ask "what happens on cold days?" without reading a temperature axis |
+| **Precipitation** | All / Dry days / Rainy days | Separate the effect of rain from the effect of temperature |
+| **Bike type** | All / Classic / E-bike (2021+ only, labeled) | Inspect the classic-vs-electric shift; honestly gated to years where the data exists |
 
 ---
 
 ## 4. Views Exposed
 
-Four focused views beat ten cluttered ones. Each names *why* it is in front of this non-technical visitor — this doubles as the pre-written "defend the spec" answer.
+Five focused views beat ten cluttered ones. Each names *why* it is in front of this non-technical visitor — this doubles as the pre-written "defend the spec" answer. Every chart's **title is the one-sentence claim** it makes.
 
-- **V1 — Ridership over time, weather overlaid.** Daily/weekly rides as the primary line, a chosen weather variable (temperature, precipitation) overlaid. *Why:* lets the visitor eyeball whether a dip lines up with bad weather (explainable) or doesn't (worth a manager's attention). Directly answers Q1.
-
+- **V1 — Ridership over time, weather overlaid.** Daily rides (7-day average) as the primary line, a chosen weather variable (temperature or precipitation) overlaid on a second axis. *Why:* lets the visitor eyeball whether a dip lines up with bad weather (explainable) or doesn't (worth a manager's attention). Answers **Q1**.
+- **V2 — Rides vs temperature, split by rider type.** Scatter of daily rides against average temperature with a smoothed trend per rider type. *Why:* shows casual demand is steeper in temperature than member demand — the elasticity that makes a weather-triggered promo worth considering. Answers **Q3**.
+- **V3 — Member vs casual across weather bands.** Grouped bars of average daily rides per weather band. *Why:* the casual/member gap widens in bad weather, so casual demand is the elastic, promotable segment. Answers **Q2**.
+- **V4 — Seasonality (month & day-of-week).** Average rides by calendar month and by weekday. *Why:* separates "it's July" from "it was sunny" so an unusual day is recognizable as unusual. Answers **Q4**.
+- **V5 — NYC vs Jersey City over time.** 7-day-average daily rides for each region. *Why:* JC is a separate operational footprint at a fraction of the volume; its weather sensitivity may differ. Context for all of the above.
 
 ---
 
 ## 5. What "Good" Means
 
-The quality bar the Verify targets make measurable. Stated here as intent; concrete numbers live in the separate Verify targets.
+The quality bar the Verify targets (§6) make measurable.
 
 - **Correct** — every number reconciles to the source daily table; verified by a check script, not assumed.
 - **Fast** — loads quickly enough that a journalist won't bounce; data is cached and loaded once, all filtering happens in memory (never re-queries BigQuery on a slider move).
 - **Public** — the URL is genuinely open; tested by someone other than me.
 - **Clear** — a stranger understands each chart without me in the room; every chart title states the claim it makes.
+
+## 6. Verify Targets (concrete)
+
+| Bar | Target | How measured | Result |
+|-----|--------|--------------|--------|
+| **Load-time** | Cold load ≤ 12 s; every filter interaction < 100 ms (no BigQuery re-query) | time `load_data()`; confirm `@st.cache_data` + in-memory pandas | Cold load **10.1 s**; interactions instant (cached). **PASS** |
+| **Correctness** | 100% of `check_correctness.py` checks pass; member+casual+unknown = total and NYC+JC = total on every row | run the gate script | **28/28 PASS** |
+| **Public-reach** | A person who is not the author opens the URL with no Google login and sees the dashboard | someone else loads the README URL on their own device | *pending public deploy (see README)* |
+| **Clarity** | Each of the 5 charts shows a one-sentence English claim as its title; no jargon, no raw tables | visual inspection | **PASS** — claims are chart titles |
+
+---
+
+## 7. Data Source
+
+- **Primary:** `msbai-dwd-aa13072.citibike.daily_summary_mat` — this project's own materialized daily table (day × region × rider × bike), built by the pipeline in `pipeline/`.
+- **Fallback:** `nyu-datasets.citibike.m_daily_trips` — used automatically if the project table is absent/empty.
+- **Weather (both cases):** `nyu-datasets.weather.m_weather_daily_nyc`, joined on `date`.
+- The app loads the small daily table **once**, joins weather, computes weather bands, and caches the result; all filtering is in-memory.
 
 ---
 

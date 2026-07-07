@@ -12,8 +12,23 @@ WEATHER_BINS   = [-999, 40, 60, 75, 999]
 WEATHER_LABELS = ["Cold (<40 °F)", "Mild (40–60 °F)", "Warm (60–75 °F)", "Hot (>75 °F)"]
 
 
+def _client() -> bigquery.Client:
+    """BigQuery client. On Streamlit Community Cloud there is no ADC, so read a
+    service-account key from st.secrets['gcp_service_account'] when present;
+    locally and on Cloud Run, fall back to Application Default Credentials."""
+    try:
+        if "gcp_service_account" in st.secrets:
+            from google.oauth2 import service_account
+            creds = service_account.Credentials.from_service_account_info(
+                dict(st.secrets["gcp_service_account"]))
+            return bigquery.Client(project=PROJECT, credentials=creds)
+    except Exception:
+        pass
+    return bigquery.Client(project=PROJECT)
+
+
 def _fetch(sql: str) -> pd.DataFrame:
-    return bigquery.Client(project=PROJECT).query(sql).to_dataframe()
+    return _client().query(sql).to_dataframe()
 
 
 @st.cache_data(show_spinner="Loading ridership + weather data…")

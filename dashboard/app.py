@@ -126,12 +126,13 @@ def v1_ridership_over_time(fdf: pd.DataFrame, rider: str):
         opacity=0.75,
     ))
     fig.update_layout(
+        title="A dip that lines up with bad weather is explainable; one that doesn't is operational.",
         yaxis=dict(title="Daily rides (7-day avg)"),
         yaxis2=dict(title=overlay_label, overlaying="y", side="right", showgrid=False),
-        legend=dict(orientation="h", y=1.08),
+        legend=dict(orientation="h", y=1.14),
         hovermode="x unified",
-        height=420,
-        margin=dict(t=20, b=40),
+        height=450,
+        margin=dict(t=70, b=40),
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -164,9 +165,12 @@ def v2_rides_vs_temperature(fdf: pd.DataFrame, rider: str):
         trendline="lowess",
         labels={"tavg_f": "Avg temperature (°F)", "trips": "Daily rides", "rider_type": "Rider type"},
         opacity=0.35,
-        height=420,
+        height=450,
     )
-    fig.update_layout(margin=dict(t=20, b=40))
+    fig.update_layout(
+        title="Ridership rises with warmth — and casual riders respond more sharply than members.",
+        margin=dict(t=70, b=40),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -195,9 +199,12 @@ def v3_member_vs_casual_weather_bands(fdf: pd.DataFrame):
         color_discrete_map={"Member": "#1f77b4", "Casual": "#ff7f0e"},
         labels={"weather_band": "Weather band", "avg_trips": "Avg daily rides", "rider_type": "Rider type"},
         category_orders={"weather_band": ["Cold (<40 °F)", "Mild (40–60 °F)", "Warm (60–75 °F)", "Hot (>75 °F)"]},
-        height=400,
+        height=430,
     )
-    fig.update_layout(margin=dict(t=20, b=40))
+    fig.update_layout(
+        title="The casual–member gap widens in bad weather: casual demand is the elastic segment.",
+        margin=dict(t=70, b=40),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -223,10 +230,10 @@ def v4_seasonality(fdf: pd.DataFrame, rider: str):
             month_df, x="month_name", y="avg_trips",
             labels={"month_name": "Month", "avg_trips": "Avg daily rides"},
             color_discrete_sequence=["#1f77b4"],
-            height=340,
-            title=f"By month — {rider}",
+            height=360,
+            title=f"Summer is always busy — a calendar effect, not weather ({rider})",
         )
-        fig1.update_layout(margin=dict(t=40, b=40))
+        fig1.update_layout(margin=dict(t=60, b=40), title=dict(font=dict(size=13)))
         st.plotly_chart(fig1, use_container_width=True)
 
     dow_labels = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun"}
@@ -243,10 +250,10 @@ def v4_seasonality(fdf: pd.DataFrame, rider: str):
             labels={"dow_name": "Day of week", "avg_trips": "Avg daily rides"},
             color_discrete_sequence=["#1f77b4"],
             category_orders={"dow_name": list(dow_labels.values())},
-            height=340,
-            title=f"By day of week — {rider}",
+            height=360,
+            title=f"Weekday vs weekend is a calendar effect, not weather ({rider})",
         )
-        fig2.update_layout(margin=dict(t=40, b=40))
+        fig2.update_layout(margin=dict(t=60, b=40), title=dict(font=dict(size=13)))
         st.plotly_chart(fig2, use_container_width=True)
 
 
@@ -272,11 +279,12 @@ def v5_nyc_vs_jc(fdf: pd.DataFrame):
         name="Jersey City", line=dict(color="#2ca02c", width=2),
     ))
     fig.update_layout(
+        title="Jersey City ridership tracks NYC's seasonal rhythm but at a fraction of the volume.",
         yaxis_title="Daily rides (7-day avg)",
-        legend=dict(orientation="h", y=1.08),
+        legend=dict(orientation="h", y=1.14),
         hovermode="x unified",
-        height=400,
-        margin=dict(t=20, b=40),
+        height=430,
+        margin=dict(t=70, b=40),
     )
     st.plotly_chart(fig, use_container_width=True)
 

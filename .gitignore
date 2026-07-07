@@ -4,3 +4,9 @@ credentials.json
 credentials_clean.json
 /tmp/
 dashboard/__pycache__/
+pipeline/__pycache__/
+*.pyc
+
+# Streamlit secrets -- never commit the real key (the .example is safe)
+dashboard/.streamlit/secrets.toml
+.streamlit/secrets.toml

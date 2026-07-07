@@ -74,7 +74,7 @@ Weather bands are computed at load: cold (<40°F) / mild (40–60°F) / warm (60
 - **Hosting:** Google Cloud Run, source-based build, scales to zero when idle.
 - **Region:** us-central1.
 
-**Live URL:** _<add once public access is confirmed>_
+**Live URL:** _<https://msbai-dwd-aa13072-kezv8xk9u8iclxichuno3q.streamlit.app/>_
 
 ### Run locally
 

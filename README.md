@@ -6,7 +6,7 @@ history (2013–present, NYC + Jersey City).
 
 ## Live dashboard
 
-**Public URL:** _TODO — paste the Streamlit Community Cloud URL here after deploy_
+**Public URL:** <https://msbai-dwd-aa13072-kezv8xk9u8iclxichuno3q.streamlit.app/>
 
 Opens with no login and loads in ~10 s (data cached; all filtering in-memory).
 
